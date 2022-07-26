@@ -1,3 +1,4 @@
+import base64
 from time import sleep
 from datetime import datetime, timezone
 from xmlrpc.client import Boolean
@@ -9,7 +10,7 @@ import string
 import json
 
 # Variables
-api = "https://xxx.pla.health/mappingEngine/demo.epi/demo.vault.xxx"
+api = "https://xx.pla.health/mappingEngine/demo.epi/demo.vault.xxx"
 token = "xyxy" # for Authentication
 headers = {"Content-Type": "application/json", "accept": "*/*", "token": token}
 
@@ -152,9 +153,9 @@ for x in products:
     leaflet = ""
     extra = ""
     with open(leafletDirectory + '/' + leafletFile, 'rb') as f:
-        leaflet = f.read().hex()
+        leaflet = base64.b64encode(f.read()).decode('utf-8')
     with open(leafletDirectory + '/' + extraFile, 'rb') as f:
-        extra = f.read().hex()
+        extra = base64.b64encode(f.read()).decode('utf-8')
 
     payload = {
         "messageTypeVersion": 1,
@@ -166,11 +167,11 @@ for x in products:
         "status": "new",
         "language": "de",
         "messageType": "leaflet",
-        "xmlFileContent": leaflet,
+        "xmlFileContent": str(leaflet),
         "otherFilesContent": [
             {
                 "filename": extraFile,
-                "fileContent": extra
+                "fileContent": str(extra)
             }
         ]
     }
