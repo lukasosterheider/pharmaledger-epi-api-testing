@@ -1,0 +1,181 @@
+from time import sleep
+from datetime import datetime, timezone
+from xmlrpc.client import Boolean
+import requests
+from requests.auth import HTTPBasicAuth
+import gtin
+import random
+import string
+import json
+
+# Variables
+api = "https://xxx.pla.health/mappingEngine/demo.epi/demo.vault.xxx"
+token = "xyxy" # for Authentication
+headers = {"Content-Type": "application/json", "accept": "*/*", "token": token}
+
+numberOfProducts = 1
+numberOfBatches = 1 # per product
+numberOfValidSerials = 10 # per batch
+numberOfRecalledSerials = 3 # per batch
+
+products = []
+batches = []
+
+expiryDate = "300101"
+
+companyName = "TestCo"
+receiverId = "ePI_TestReceiver"
+
+leafletDirectory = "leaflet"
+leafletFile = "export.xml"
+extraFile = "figure_015_1452_0631_7048_4128.png"
+
+# Create Products
+
+for x in range(numberOfProducts):
+    randomGtin = random.randint(1000000000000,9999999999999)
+    gtinNumber = int(gtin.GTIN(raw=randomGtin))
+    materialCode = randomGtin = random.randint(10000,99999)
+    messageId = random.randint(1000000,999999999)
+    currentTime = datetime.now().isoformat()
+    name = "Sample Product " + ''.join(random.choices(string.ascii_uppercase, k=8))
+    description = "Sample Description " + ''.join(random.choices(string.ascii_lowercase, k=16))
+
+    payload = {
+                "messageType": "Product",
+                "messageTypeVersion": 1,
+                "senderId": "PythonTestTool",
+                "receiverId": receiverId,
+                "messageId": str(messageId),
+                "messageDateTime": currentTime,
+                "product": {
+                    "productCode": str(gtinNumber),
+                    "internalMaterialCode": str(materialCode),
+                    "inventedName": name,
+                    "nameMedicinalProduct": description,
+                    "strength": "2.5 mg",
+                    "manufName": "",
+                    "adverseEventReportingURL": "https://bayer.pla.health/borest/scan",
+                    "acfProductCheckURL": "https://bayer.pla.health/borest/scan",
+                    "flagEnableAdverseEventReporting": True,
+                    "flagEnableACFProductCheck": True,
+                    "flagDisplayEPI_BatchRecalled": True,
+                    "flagDisplayEPI_SNRecalled": True,
+                    "flagDisplayEPI_SNDecommissioned": True,
+                    "flagDisplayEPI_SNUnknown": True,
+                    "flagDisplayEPI_EXPIncorrect": True,
+                    "flagDisplayEPI_BatchExpired": True,
+                    "flagDisplayEPI_BatchNumberUnknown": True,
+                    "healthcarePractitionerInfo": "SmPC",
+                    "patientSpecificLeaflet": "Patient Information",
+                    "markets": [
+                    {
+                        "marketId": "DE",
+                        "nationalCode": "123456",
+                        "mahName": companyName + " Germany",
+                        "legalEntityName": companyName + " Germany AG"
+                    }
+                    ]
+                }
+            }
+    
+    products.append(gtinNumber)
+
+    response = requests.put(api, headers=headers, data = json.dumps(payload))
+
+    print(response)
+    # print(response.content)
+
+print("Products: " + str(products))
+
+# Create Batches
+
+for x in products:
+    for y in range(numberOfBatches):
+        messageId = random.randint(1000000,999999999)
+        currentTime = datetime.now().isoformat()
+        randomBatch = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        validSerialNumbers = []
+        recalledSerialNumbers = []
+        for z in range(numberOfValidSerials):
+            serial = random.randint(1000000000,9999999999)
+            validSerialNumbers.append(str(serial))
+        for z in range(numberOfRecalledSerials):
+            serial = random.randint(1000000000,9999999999)
+            recalledSerialNumbers.append(str(serial))
+
+        batches.append([x, randomBatch])
+
+        payload = {
+                "messageType": "Batch",
+                "messageTypeVersion": 1,
+                "senderId": "PythonTestTool",
+                "receiverId": receiverId,
+                "messageId": str(messageId),
+                "messageDateTime": currentTime,
+                "batch": {
+                    "productCode": str(x),
+                    "batch": str(randomBatch),
+                    "expiryDate": str(expiryDate),
+                    "snValid": validSerialNumbers,
+                    "snRecalled": recalledSerialNumbers,
+                    "snDecom": [],
+                    "recallMessage": "",
+                    "batchMessage": "",
+                    "packagingSiteName": "Leverkusen",
+                    "flagEnableBatchRecallMessage": False,
+                    "flagEnableSNVerification": True,
+                    "flagEnableEXPVerification": True,
+                    "flagEnableExpiredEXPCheck": True,
+                    "flagEnableACFBatchCheck": False,
+                    "acdcAuthFeatureSSI": "",
+                    "acfBatchCheckURL": False,
+                    "snValidReset": False,
+                    "snRecalledReset": False,
+                    "snDecomReset": False
+                }
+            }
+        
+        response = requests.put(api, headers=headers , data = json.dumps(payload))
+
+        print(response)
+        # print(response.content)
+
+print("Batches: " + str(batches))
+
+# Create Leaflets
+
+for x in products:
+
+    shipmentId = rand = random.randint(10000000,99999999)
+
+    leaflet = ""
+    extra = ""
+    with open(leafletDirectory + '/' + leafletFile, 'rb') as f:
+        leaflet = f.read().hex()
+    with open(leafletDirectory + '/' + extraFile, 'rb') as f:
+        extra = f.read().hex()
+
+    payload = {
+        "messageTypeVersion": 1,
+        "senderId": "PythonTestTool",
+        "receiverId": receiverId,
+        "messageId": str(messageId),
+        "messageDateTime": currentTime,
+        "productCode": str(x),
+        "status": "new",
+        "language": "de",
+        "messageType": "leaflet",
+        "xmlFileContent": leaflet,
+        "otherFilesContent": [
+            {
+                "filename": extraFile,
+                "fileContent": extra
+            }
+        ]
+    }
+    
+    response = requests.put(api, headers=headers , data = json.dumps(payload))
+    print(response)
+
+print("Done!")
