@@ -31,6 +31,19 @@ leafletDirectory = "leaflet"
 leafletFile = "export.xml"
 extraFile = "figure_015_1452_0631_7048_4128.png"
 
+successRequests = 0
+errorRequests = 0
+
+# Functions
+
+def evaluateResponse(status_code):
+    if status_code == 200:
+        global successRequests
+        successRequests += 1
+    else:
+        global errorRequests
+        errorRequests += 1
+
 # Create Products
 
 for x in range(numberOfProducts):
@@ -85,7 +98,7 @@ for x in range(numberOfProducts):
     response = requests.put(api, headers=headers, data = json.dumps(payload))
 
     print(response)
-    # print(response.content)
+    evaluateResponse(response.status_code)
 
 print("Products: " + str(products))
 
@@ -140,7 +153,7 @@ for x in products:
         response = requests.put(api, headers=headers , data = json.dumps(payload))
 
         print(response)
-        # print(response.content)
+        evaluateResponse(response.status_code)
 
 print("Batches: " + str(batches))
 
@@ -178,5 +191,6 @@ for x in products:
     
     response = requests.put(api, headers=headers , data = json.dumps(payload))
     print(response)
+    evaluateResponse(response.status_code)
 
-print("Done!")
+print("Script completed - Total Requests: " + str(successRequests + errorRequests) + " Successes: " + str(successRequests) + " Errors: " + str(errorRequests))
